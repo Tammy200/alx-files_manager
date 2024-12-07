@@ -3,9 +3,7 @@ import dbClient from '../utils/db';
 
 export default class UsersController {
   static async postNew(req, res) {
-    console.log(req.body);
     const { email, password } = req.body;
-    console.log(req.body);
 
     if (!email) {
       res.status(400).send({ error: 'Missing email' });
