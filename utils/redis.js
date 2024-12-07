@@ -2,11 +2,11 @@ import { createClient } from 'redis';
 import { promisify } from 'util';
 
 class RedisClient {
-  constructor () {
+  constructor() {
     this.client = createClient();
     this.client.on('error', (err) => {
-        console.log(err);
-      });
+      console.log(err);
+    });
 
     this.getAsync = promisify(this.client.GET).bind(this.client);
     this.setexAsync = promisify(this.client.SETEX).bind(this.client);
@@ -14,11 +14,11 @@ class RedisClient {
   }
 
   isAlive() {
-    return this.client.connected; 
+    return this.client.connected;
   }
 
   async get(key) {
-    const value = await this.getAsync(key);;
+    const value = await this.getAsync(key);
 
     return value;
   }
