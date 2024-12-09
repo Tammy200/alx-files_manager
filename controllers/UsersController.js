@@ -1,5 +1,7 @@
 import sha1 from 'sha1';
+import { ObjectId } from 'mongodb';
 import dbClient from '../utils/db';
+import redisClient from '../utils/redis';
 
 export default class UsersController {
   static async postNew(req, res) {
@@ -27,9 +29,34 @@ export default class UsersController {
       const userId = result.insertedId;
 
       res.status(201).send({ email, id: userId });
+      return;
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Server error' });
+    }
+  }
+
+  static async getMe(req, res) {
+    try {
+      const token = req.header('X-Token');
+      if (!token) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      const userID = await redisClient.get(`auth_${token}`);
+      // console.log(userID);
+      if (!userID) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      const user = await dbClient.getUser({ _id: ObjectId(userID) });
+      if (!user) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      // console.log(user);
+      return res.status(200).json({ id: user._id, email: user.email });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ error: 'Server error' });
     }
   }
 }
