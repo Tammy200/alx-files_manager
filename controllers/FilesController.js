@@ -8,13 +8,13 @@ import path from 'path';
 export default class FilesController {
   static async postUpload(req, res) {
     try {
-      const token = req.headers['X-Token'];
+      const token = req.header('X-Token');
       const userId = await redisClient.get(`auth_${token}`);
       if (!token || !userId) {
         return res.status(401).json({"error":"Unauthorized"});
       }
       const {
-        name, type, data, parentId ? parentId : 0;, isPublic = false,
+        name, type, data, parentId = 0, isPublic = false,
       } = req.body;
 
       if (!name) {
@@ -37,26 +37,38 @@ export default class FilesController {
         }
       }
       let localPath;
-      if (type !== 'folder') {
-        const folderPath = process.env.FOLDER_PATH || '/tmp/files_manager';
-	if (!fs.existsSync(folderPath)) {
-          fs.mkdirSync(folderPath, { recursive: true });
-        }
-        localPath = path.join(folderPath, uuidv4());
-        fs.writeFileSync(localPath, Buffer.from(data, 'base64'));
-      }
       const newFile = {
         userId: ObjectId(userId),
         name,
         type,
         isPublic,
-        parentId: parentId !== 0 ? ObjectId(parentId) : 0,
-        ...(type !== 'folder' && { localPath })
+        parentId: parentId !== 0 ? ObjectId(parentId) : 0
+      };
+      if (type === 'folder') {
+        const result = await dbClient.db.collection('files').insertOne(newFile);
+        return res.status(201).send(({ ...newFile, id: result.insertedId }));
+      }
+
+      const folderPath = process.env.FOLDER_PATH || '/tmp/files_manager';
+
+      if (!fs.existsSync(folderPath)) {
+          fs.mkdirSync(folderPath, { recursive: true });
         }
 
+      localPath = path.join(folderPath, uuidv4());
+      fs.writeFileSync(localPath, Buffer.from(data, 'base64'));
+
+      newFile.localPath = localPath;
         const result = await dbClient.db.collection('files').insertOne(newFile);
 
-        return res.status(201).json({ ...newFile, id: result.insertedId });
+        return res.status(201).json({ 
+          id: result.insertedId,
+          userId: newFile.userId,
+	  name,
+	  type,
+	  isPublic,
+	  parentId: parentId !== 0 ? ObjectId(parentId) : 0
+	});
 
     } catch (err) {
       console.error(err);
