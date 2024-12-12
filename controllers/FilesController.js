@@ -87,7 +87,7 @@ export default class FilesController {
       const userId = await redisClient.get(`auth_${token}`);
       const user = await dbClient.db.collection('users').findOne({ userId });
       if (!user) {
-        return res.status(401).send({ errpr: 'Unauthorized' });
+        return res.status(401).send({ error: 'Unauthorized' });
       }
       const file = await dbClient.db.collection('files').findOne({ fileId, userId });
       if (!file) {
