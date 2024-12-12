@@ -4,6 +4,9 @@ import fs from 'fs';
 import path from 'path';
 import redisClient from '../utils/redis';
 import dbClient from '../utils/db';
+import Queue from 'bull';
+import mime from 'mime-types';
+
 
 export default class FilesController {
   static async postUpload(req, res) {
@@ -56,6 +59,9 @@ export default class FilesController {
       }
 
       const localPath = path.join(folderPath, uuidv4());
+      if (type === 'image') {
+        await fileQueue.add({ userId, fileId: localPath });
+      }
       fs.writeFileSync(localPath, Buffer.from(data, 'base64'));
 
       newFile.localPath = localPath;
@@ -140,6 +146,95 @@ export default class FilesController {
     } catch (err) {
       console.error(err);
       return res.status(500).send('server Error');
+    }
+  }
+
+  static async putPublish(req, res) {
+    try {
+      const token = req.header('X-Token');
+      const fileId = req.param.id || '';
+      const userId = await redisClient.get(`auth_${token}`);
+      const user = await dbClient.db.collection('users').findOne({ _id: ObjectId(userId) });
+      if (!user) {
+        return res.status(401).send({ error: 'Unauthorized' });
+      }
+      let file = await dbClient.db.collection('files').findOne({ fileId, userId });
+      if (!file) {
+        return res.status(404).send({ error: 'Not found' });
+      }
+      await dbClient.db.collection('files').updateOne({ _id: ObjectId(fileId) }, { $set: { isPublic: true } });
+      file = await dbClient.files.findOne({ _id: ObjectId(fileId), userId: user._id });
+      return res.status(200).send({
+        id: file._id,
+        userId: file.userId,
+        name: file.name,
+        type: file.type,
+        isPublic: file.isPublic,
+        parentId: file.parentId,
+      });
+    } catch (err) {
+      console.log(err);
+      return res.status(500).send('server error');
+    }
+  }
+
+  static async putUnpublish(req, res) {
+    try {
+      const token = req.header('X-Token');
+      const fileId = req.param.id || '';
+      const userId = await redisClient.get(`auth_${token}`);
+      const user = await dbClient.db.collection('users').findOne({ _id: ObjectId(userId) });
+      if (!user) {
+        return res.status(401).send({ error: 'Unauthorized' });
+      }
+      let file = await dbClient.db.collection('files').findOne({ fileId, userId });
+      if (!file) {
+        return res.status(404).send({ error: 'Not found' });
+      }
+      await dbClient.db.collection('files').updateOne({ _id: ObjectId(fileId) }, { $set: { isPublic: false } });
+      file = await dbClient.files.findOne({ _id: ObjectId(fileId), userId: user._id });
+      return res.status(200).send({
+        id: file._id,
+        userId: file.userId,
+        name: file.name,
+        type: file.type,
+        isPublic: file.isPublic,
+        parentId: file.parentId,
+      });
+    } catch (err) {
+      console.log(err);
+      return res.status(500).send('server error');
+    }
+  }
+
+  static async getFile(req, res) {
+    try {
+      const fileId = req.param.id || '';
+      const file = await dbClient.db.collection('files').findOne({ _id: ObjectId(fileId) });
+      if (!file) {
+        return res.status(404).send({ error: 'Not found' });
+      }
+      const token = req.header('X-Token');
+      const userId = await redisClient.get(`auth_${token}`);
+      const user = await dbClient.db.collection('users').findOne({ _id: ObjectId(userId) });
+      if (!user && file.isPublic === false) {
+        return res.status(400).send({ error: 'Not found' });
+      }
+      if (file.type === 'folder') {
+        return res.status(400).send({ error: 'A folder doesn\'t have content' });
+      }
+      try {
+         const fileData = readFileSync(file.localPath);
+	 const mimeType = mime.contentType(file.name);
+	 res.setHeader('Content-Type', mimeType);
+
+         return response.status(200).send(fileData);
+      } catch (err) {
+        return response.status(404).send({ error: 'Not found' });
+      }
+    } catch (err) {
+      console.log(err);
+      return res.status(500).send('server error');
     }
   }
 }
