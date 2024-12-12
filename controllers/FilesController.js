@@ -20,13 +20,13 @@ export default class FilesController {
       } = req.body;
 
       if (!name) {
-        return res.status(400).send('Missing name');
+        return res.status(400).send({ error: 'Missing name' });
       }
       if (!type || !['folder', 'file', 'image'].includes(type)) {
-        return res.status(400).send('Missing type');
+        return res.status(400).send({ error: 'Missing type' });
       }
       if (!data && type !== 'folder') {
-        return res.status(400).send('Missing data');
+        return res.status(400).send({ error: 'Missing data' });
       }
 
       if (parentId !== 0) {
@@ -35,7 +35,7 @@ export default class FilesController {
           return res.status(400).send('Parent not found');
         }
         if (parentFile.type !== 'folder') {
-          return res.status(400).send('Parent is not a folder');
+          return res.status(400).send({ error: 'Parent is not a folder' });
         }
       }
 
