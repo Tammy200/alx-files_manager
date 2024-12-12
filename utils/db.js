@@ -1,13 +1,12 @@
 import { env } from 'process';
 import { MongoClient } from 'mongodb';
 
-
 class DBClient {
   constructor() {
     this.host = env.DB_HOST || 'localhost';
     this.port = env.DB_PORT || '27017';
     this.dbName = env.DB_DATABASE || 'files_manager';
-    
+
     const url = `mongodb://${this.host}:${this.port}/${this.dbName}`;
 
     MongoClient.connect(url, { useUnifiedTopology: true }, (err, client) => {
