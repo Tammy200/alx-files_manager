@@ -2,7 +2,7 @@ import { ObjectId } from 'mongodb';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
 import path from 'path';
-import Queue from 'bull';
+// import Queue from 'bull';
 import mime from 'mime-types';
 import redisClient from '../utils/redis';
 import dbClient from '../utils/db';
@@ -221,7 +221,7 @@ export default class FilesController {
 
   static async getFile(req, res) {
     try {
-      const fileId = req.param.id || '';
+      const fileId = req.params.id || '';
       const file = await dbClient.db.collection('files').findOne({ _id: ObjectId(fileId) });
       if (!file) {
         return res.status(404).send({ error: 'Not found' });
@@ -236,7 +236,7 @@ export default class FilesController {
         return res.status(400).send({ error: 'A folder doesn\'t have content' });
       }
       try {
-        const fileData = readFileSync(file.localPath);
+        const fileData = fs.readFileSync(file.localPath);
         const mimeType = mime.contentType(file.name);
         res.setHeader('Content-Type', mimeType);
 
