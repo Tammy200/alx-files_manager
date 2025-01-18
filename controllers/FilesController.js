@@ -229,7 +229,8 @@ export default class FilesController {
       const token = req.header('X-Token');
       const userId = await redisClient.get(`auth_${token}`);
       const user = await dbClient.db.collection('users').findOne({ _id: ObjectId(userId) });
-      if (!user && file.isPublic === false || (user? user._id.toString() : file.userId.toString() !== file.userId.toString())) {
+      const usrId = user? user._id.toString() : file.userId.toString();
+      if ((!user && file.isPublic === false) || (usrId !== file.userId.toString())) {
         return res.status(404).send({ error: 'Not found' });
       }
       if (file.type === 'folder') {
