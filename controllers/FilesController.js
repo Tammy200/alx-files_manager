@@ -66,9 +66,9 @@ export default class FilesController {
       }
 
       const localPath = path.join(folderPath, uuidv4());
-      // if (type === 'image') {
-      // await fileQueue.add({ userId, fileId: localPath });
-      // }
+      if (type === 'image') {
+        //await fileQueue.add({ userId, fileId: localPath });
+      }
       fs.writeFileSync(localPath, Buffer.from(data, 'base64'));
 
       newFile.localPath = localPath;
@@ -223,6 +223,8 @@ export default class FilesController {
     try {
       const fileId = req.params.id || '';
       const file = await dbClient.db.collection('files').findOne({ _id: ObjectId(fileId) });
+      const size = req.query.size || 0;
+
       if (!file) {
         return res.status(404).send({ error: 'Not found' });
       }
@@ -237,13 +239,18 @@ export default class FilesController {
         return res.status(400).send({ error: 'A folder doesn\'t have content' });
       }
       try {
-        const fileData = fs.readFileSync(file.localPath);
+	let { localPath } = file;
+	let data;
+	if (size) {
+          localPath = `${localPath}_${size}`;
+	}
+        data = fs.readFileSync(localPath);
         const mimeType = mime.contentType(file.name);
         res.setHeader('Content-Type', mimeType);
 
-        return res.status(200).send(fileData);
+        return res.status(200).send(data);
       } catch (err) {
-        return res.status(404).send({ error: 'Not found' });
+        return res.status(404).send({ error: `Not found here: ${err}` });
       }
     } catch (err) {
       console.log(err);
