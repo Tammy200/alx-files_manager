@@ -1,6 +1,6 @@
 import Queue from 'bull';
 import dbClient from './utils/db';
-import fs from 'fs';
+import { promises } from 'fs';
 
 const imageThumbnail = require('image-thumbnail');
 
@@ -25,6 +25,7 @@ fileQueue.process(async (job) => {
   }
 
   const { localPath } = file;
+  console.log(localPath);
   const options = {};
   const widths = [500, 250, 100];
 
@@ -32,7 +33,8 @@ fileQueue.process(async (job) => {
     option.width = width;
     try {
       const thumbNail = await imageThumbnail(localPath, options);
-      fs.writeFileSync(`${localPath}_${width}`, thumbNail);
+      await promises.writeFile(`${localPath}_${width}`, thumbNail);
+      console.log('after writing..');
       console.log(thumbNail);
     } catch (err) {
       console.error(err.message);

@@ -4,6 +4,15 @@
 
 A simple file management API built with Express, MongoDB, Redis, Bull, and Node.js.
 
+The objective is to build a simple platform to upload and view files with:
+
++ User authentication via a token
++ Listing of all files
++ Uploading a new file
++ Changing permissions of a file
++ Viewing a file
++ Generating thumbnails for images
+
 ## Requirements
 
 ### Applications

@@ -2,10 +2,14 @@ import { ObjectId } from 'mongodb';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
 import path from 'path';
-// import Queue from 'bull';
+import Queue from 'bull';
 import mime from 'mime-types';
 import redisClient from '../utils/redis';
 import dbClient from '../utils/db';
+
+
+const fileQueue = new Queue('fileQueue');
+
 
 export default class FilesController {
   static async postUpload(req, res) {
@@ -66,13 +70,13 @@ export default class FilesController {
       }
 
       const localPath = path.join(folderPath, uuidv4());
-      if (type === 'image') {
-        //await fileQueue.add({ userId, fileId: localPath });
-      }
-      fs.writeFileSync(localPath, Buffer.from(data, 'base64'));
 
       newFile.localPath = localPath;
       const result = await dbClient.db.collection('files').insertOne(newFile);
+      if (type === 'image') {
+        await fileQueue.add({ userId, fileId: result.insertedId });
+      }
+      fs.writeFileSync(localPath, Buffer.from(data, 'base64'));
 
       return res.status(201).json({
         id: result.insertedId,
