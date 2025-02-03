@@ -1,9 +1,8 @@
+import Queue from 'bull';  // Move this to the top
 import sha1 from 'sha1';
 import { ObjectId } from 'mongodb';
 import dbClient from '../utils/db';
 import redisClient from '../utils/redis';
-import Queue from 'bull';
-
 
 const userQueue = new Queue('userQueue');
 
@@ -30,9 +29,9 @@ export default class UsersController {
       const hashedPwd = sha1(password);
 
       const result = await usersCollection.insertOne({ email, password: hashedPwd });
-      const userId = result.insertedIdi;
+      const userId = result.insertedId;
 
-      await userQueue.add({ userId: userId });
+      await userQueue.add({ userId });
 
       res.status(201).send({ email, id: userId });
       return;
