@@ -1,6 +1,6 @@
-import Queue from 'bull';  // Move this to the top
 import sha1 from 'sha1';
 import { ObjectId } from 'mongodb';
+import Queue from 'bull';  // Move this up before dbClient
 import dbClient from '../utils/db';
 import redisClient from '../utils/redis';
 
